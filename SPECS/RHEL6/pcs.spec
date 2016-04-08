@@ -1,15 +1,21 @@
 Name: pcs		
-Version: 0.9.90
-Release: 2%{?dist}
+Version: 0.9.139
+Release: 8%{?dist}
 License: GPLv2
 URL: http://github.com/feist/pcs
 Group: System Environment/Base
-BuildArch: noarch
-BuildRequires: python2-devel
+ExclusiveArch: i686 x86_64
+BuildRequires: python2-devel rubygems ruby-devel pam-devel
+Requires: ruby rubygems ccs
+Requires: python-clufter
 Summary: Pacemaker Configuration System	
-Source0: http://people.redhat.com/cfeist/pcs/pcs-%{version}.tar.gz
-
-Requires: pacemaker ccs	
+Source0: http://people.redhat.com/cfeist/pcs/pcs-withgems-%{version}.tar.gz
+Patch0: bz1184763-Warn-if-node-removal-will-cause-a-loss-of-the-quorum.patch
+Patch1: bz1168982-Fix-standby-unstandby-local-node.patch
+Patch2: bz1171312-1-Fix-tarball-creation-on-import-cman.patch
+Patch3: bz1171312-2-Fix-passing-parameters-to-python-clufter.patch
+Patch4: rhel6.patch
+Patch5: disable-gui.patch
 
 %description
 pcs is a corosync and pacemaker configuration tool.  It permits users to
@@ -17,28 +23,194 @@ easily view, modify and created pacemaker based clusters.
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1 -b .rhel6
+%patch5 -p1 -b .disable-gui
 
 %build
 
-
 %install
 rm -rf $RPM_BUILD_ROOT
-pwd
 make install DESTDIR=$RPM_BUILD_ROOT PYTHON_SITELIB=%{python_sitelib}
+make install_pcsd DESTDIR=$RPM_BUILD_ROOT PYTHON_SITELIB=%{python_sitelib} hdrdir="%{_includedir}" rubyhdrdir="%{_includedir}" includedir="%{_includedir}" initdir="%{_initrddir}"
 chmod 755 $RPM_BUILD_ROOT/%{python_sitelib}/pcs/pcs.py
 
+%post
+/sbin/chkconfig --add pcsd
+if [ $1 -eq 2 ]; then
+    /sbin/service pcsd condrestart
+fi
+
+%preun
+if [ $1 -eq 0 ]; then
+    /sbin/chkconfig --del pcsd
+    /sbin/service pcsd stop
+fi
 
 %files
 %defattr(-,root,root,-)
 %{python_sitelib}/pcs
 %{python_sitelib}/pcs-%{version}-py2.*.egg-info
 /usr/sbin/pcs
+/usr/lib/pcsd/*
+/usr/lib/pcsd/.bundle/config
+/usr/lib/pcsd/.gitignore
+%{_initrddir}/pcsd
+/var/lib/pcsd
+/etc/pam.d/pcsd
 /etc/bash_completion.d/pcs
+/etc/logrotate.d/pcsd
+%dir /var/log/pcsd
+/etc/sysconfig/pcsd
 %{_mandir}/man8/pcs.*
 
 %doc COPYING README
 
 %changelog
+* Fri Apr 03 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-8
+- Fixed duplicated nodes in a cluster created by import-cman
+- Resolves: rhbz#1171312
+
+* Wed Apr 01 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-7
+- Fixed tarball creation on import-cman
+- Resolves: rhbz#1171312
+
+* Wed Mar 25 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-6
+- Fixed node standby / unstadby
+- Resolves: rhbz#1168982
+
+* Fri Mar 13 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-5
+- Added dependency on python-clufter
+- Resolves: rhbz#1171312
+
+* Thu Mar 05 2015 Chris Feist <cfeist@redhat.com> - 0.9.139-4
+- Revert clufter changes since it will be in its own package
+- Resolves: rhbz#1171312
+
+* Wed Mar 04 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-3
+- Added clufter package
+- Resolves: rhbz#1171312
+
+* Mon Mar 02 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-2
+- Added warning when node removal will cause a loss of the quorum
+- Resolves: rhbz#1184763
+
+* Tue Feb 17 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-1
+- Rebased to latest upstream packages
+- Fixed constraints removal and node standby/unstandby using remote GUI
+- Fixed displaying of fence / resource agent metadata in GUI
+- Added Pacemaker Resource defaults and Op defaults to 'pcs config' output
+- Fixed 'pcs resource clear' used on cloned group
+- Added support for scope option in cib commands
+- Added warning when creating a cluster with UDPU transport
+- Reload cluster.conf after node addition / removal
+- Resolves: rhbz#1185738 rhbz#1168982 rhbz#1174793 rhbz#1187488 rhbz#1190167 rhbz#1190168 rhbz#1191898 rhbz#1193433
+
+* Tue Jan 27 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.138-1
+- Rebased to latest upstream packages
+- Fixed creating default resource operations
+- Added support for RRP and corosync options for cman based clusters
+- Allowed scope=configuration in cib commands
+- Added support for configuring a cluster remotely using pcsd
+- Fixed globally-unique clone resources in pcsd
+- Added resource location to resources / stonith devices list
+- Fixed formatting of resource / fence agent description
+- Fence agent description now contains information about the agent
+- Parallelized cluster start and cluster stop
+- Added warning when nodes stop will cause a loss of the quorum
+- pcs status --full now displays Node attributes and Migration summary
+- Resolves: rhbz#1185738 rhbz#1031141 rhbz#1121769 rhbz#1126835 rhbz#1160359 rhbz#1168986 rhbz#1174244 rhbz#1174793 rhbz#1174798 rhbz#1174801 rhbz#1184763 rhbz#1184922
+
+* Wed Aug 27 2014 Chris Feist <cfeist@redhat.cmo> - 0.9.123-9
+- Improved detection of RHEL 6 variants
+- Resolves: rhbz#1026431
+
+* Fri Aug 15 2014 Chris Feist <cfeist@redhat.cmo> - 0.9.123-8
+- Added support for 'pcs acl' and 'pcs config' in bash completion
+- Resolves: rhbz#1026987
+
+* Wed Aug 13 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-7
+- Fixed error in bash completion when an '|' is used
+- Resolves: rhbz#1026987
+
+* Thu Aug 07 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-6
+- Fixed issue with sync cluster.conf & adding uid/gid across cluster on RHEL6 w/ pcsd
+- Resolves: rhbz#1102836
+
+* Wed Aug 06 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-5
+- Fixed support for adding/removing nodes on RHEL6 w/ pcsd
+- Resolves: rhbz#1102836
+
+* Thu Jul 03 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-4
+- Fixed resource delete for clones of groups with more than one resource
+- Fixed unclone of group so all resources are removed
+- Resolves: rhbz#1107612 rhbz#1108778
+
+* Tue Jul 01 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-3
+- Added ability to upgrade cluster cib and we auto upgrade cib if we're running
+  an acl command (except show or help)
+- Resolves: rhbz#1112727
+
+* Mon Jun 23 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-2
+- Added --full to pcs status to view resources in clones of groups
+- Resolves: rhbz#1033538
+
+* Thu Jun 19 2014 Chris Feist <cfeist@redhat.com> - 0.9.123-1
+- Added support for pacemaker ACLs
+- Resolves: rhbz#1102836
+
+* Mon Jun 16 2014 Chris Feist <cfeist@redhat.com> - 0.9.122-4
+- Fixed pcs cluster enable/disable to only enable pacemaker
+- Resolves: rhbz#1038107
+
+* Fri Jun 13 2014 Chris Feist <cfeist@redhat.com> - 0.9.122-3
+- Disabled GUI
+- On upgrade, condrestart pcsd
+- Resolves: rhbz#1102836
+
+* Wed Jun 11 2014 Chris Feist <cfeist@redhat.com> - 0.9.121-1
+- Don't try to get metadata for fence_check, fence_tool & fence_node
+- Cloned M/S groups can now be deleted
+- Clone options can now follow --clone
+- Cloned resources with globally-unique=true can now be deleted
+- Resolves: rhbz#1102836
+
+* Tue Jun 10 2014 Chris Feist <cfeist@redhat.com> - 0.9.120-2
+- Use /usr/sbin/pcs for pcs instead of /sbin/pcs
+- Use Open4 instead of POpen4 for running commands
+- Fixed cluster setup for RHEL6
+- Resolves: rhbz#1102836
+
+* Mon Jun 09 2014 Chris Feist <cfeist@redhat.com> - 0.9.118-2
+- Re-synced to upstream sources
+- Fixed dependency on rubygems
+- Fixed pam long timeouts due to fprintd
+- Resolves: rhbz#1102836
+
+* Thu Jun 05 2014 Chris Feist <cfeist@redhat.com> - 0.9.117-1
+- Fixed gem install order
+- Use local gems for install
+- Resolves: rhbz#1102836
+
+* Thu Jun 05 2014 Chris Feist <cfeist@redhat.com> - 0.9.116-1
+- Re-synced to latest upstream source
+- Added support for pcsd
+- Resolves: rhbz#1102836
+
+* Tue May 20 2014 Chris Feist <cfeist@redhat.com> - 0.9.101-3
+- When creating a resource using --group/--clone/--master put the group
+  inside the master/clone/group before putting it into the live CIB
+- Resolves: rhbz#1066927
+
+* Wed Dec 04 2013 Chris Feist <cfeist@redhat.com> - 0.9.101-1
+- Rebase for new features
+- Added ability to set uidgid in cluster.conf
+- Stonith level add now properly recognizes nodes
+- Resolves: rhbz#1025053 rhbz#1019410
+
 * Fri Oct 11 2013 Chris Feist <cfeist@redhat.com> - 0.9.90-2
 - Bump version for 6.4.z stream
 
