@@ -15,23 +15,33 @@
 
 Name: fence-agents
 Summary: Fence Agents for Red Hat Cluster
-Version: 4.0.10
-Release: 1%{?alphatag:.%{alphatag}}%{?dist}
+Version: 4.0.11
+Release: 8%{?alphatag:.%{alphatag}}%{?dist}
 License: GPLv2+ and LGPLv2+
 Group: System Environment/Base
 URL: http://sourceware.org/cluster/wiki/
-Source0: fence-agents/%{name}-%{version}.tar.xz
-
-%if 0%{?fedora}
-%global supportedagents alom apc apc_snmp bladecenter brocade cisco_mds cisco_ucs drac5 eaton_snmp eps hpblade ibmblade ifmib ilo ilo_mp intelmodular ipdu ipmilan kdump ldom lpar rhevm rsa rsb scsi vmware_soap wti
-%global testagents virsh
-%global allfenceagents fence-agents-alom fence-agents-apc fence-agents-apc-snmp fence-agents-bladecenter fence-agents-brocade fence-agents-cisco-mds fence-agents-cisco-ucs fence-agents-drac5 fence-agents-eaton-snmp fence-agents-eps fence-agents-hpblade fence-agents-ibmblade fence-agents-ifmib fence-agents-ilo2 fence-agents-ilo-mp fence-agents-intelmodular fence-agents-ipdu fence-agents-ipmilan fence-agents-kdump fence-agents-ldom fence-agents-lpar fence-agents-rhevm fence-agents-rsa fence-agents-rsb fence-agents-scsi fence-agents-vmware-soap fence-agents-wti
-%endif
+Source0: https://fedorahosted.org/releases/f/e/fence-agents/%{name}-%{version}.tar.xz
+Patch0: bz1072564-1-add_ssl_secure_and_ssl_insecure.patch
+Patch1: bz1072564-2-add_ssl_secure_and_ssl_insecure.patch
+Patch2: backward-rename_fence_scsi_check_to_pl.patch
+Patch3: bz1121122-1-fence_ilo_ssh.patch
+Patch4: bz1140921-1-fence_zvm.patch
+Patch5: bz1111597-1-fence_rsb.patch
+Patch6: bz1148762-1-fence_wti_eol.patch
+Patch7: bz1153059-1-fence_vmware_soap-fail_usage.patch
+Patch8: bz1111599-1-fence_cisco_and_soap_logout.patch
+Patch9: bz1162092-1-fix_ssl_secure.patch
+Patch10: bz1140921-2-fence_zvm.patch
+Patch11: bz1140921-3-fence_zvm.patch
 
 %if 0%{?rhel}
-%global supportedagents apc apc_snmp bladecenter brocade cisco_mds cisco_ucs drac5 eaton_snmp eps hpblade ibmblade ifmib ilo ilo_mp intelmodular ipdu ipmilan kdump rhevm rsb scsi vmware_soap wti
+%global supportedagents apc apc_snmp bladecenter brocade cisco_mds cisco_ucs drac5 eaton_snmp eps hpblade ibmblade ifmib ilo ilo_mp ilo_ssh intelmodular ipdu ipmilan kdump rhevm rsb scsi vmware_soap wti
+%global allfenceagents fence-agents-apc fence-agents-apc-snmp fence-agents-bladecenter fence-agents-brocade fence-agents-cisco-mds fence-agents-cisco-ucs fence-agents-drac5 fence-agents-eaton-snmp fence-agents-eps fence-agents-hpblade fence-agents-ibmblade fence-agents-ifmib fence-agents-ilo2 fence-agents-ilo-mp fence-agents-ilo-ssh fence-agents-intelmodular fence-agents-ipdu fence-agents-ipmilan fence-agents-kdump fence-agents-rhevm fence-agents-rsb fence-agents-scsi fence-agents-vmware-soap fence-agents-wti
+%ifarch s390x
+%global testagents virsh zvm
+%else
 %global testagents virsh
-%global allfenceagents fence-agents-apc fence-agents-apc-snmp fence-agents-bladecenter fence-agents-brocade fence-agents-cisco-mds fence-agents-cisco-ucs fence-agents-drac5 fence-agents-eaton-snmp fence-agents-eps fence-agents-hpblade fence-agents-ibmblade fence-agents-ifmib fence-agents-ilo2 fence-agents-ilo-mp fence-agents-intelmodular fence-agents-ipdu fence-agents-ipmilan fence-agents-kdump fence-agents-rhevm fence-agents-rsb fence-agents-scsi fence-agents-vmware-soap fence-agents-wti
+%endif
 %endif
 
 ## Setup/build bits
@@ -39,20 +49,30 @@ Source0: fence-agents/%{name}-%{version}.tar.xz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 # Build dependencies
-BuildRequires: perl 
 BuildRequires: glibc-devel
 BuildRequires: gnutls-utils
 BuildRequires: libxslt
 BuildRequires: python pexpect python-pycurl python-suds python-requests
-BuildRequires: perl(Net::Telnet) net-snmp-utils
-%if 0%{?fedora}
-BuildRequires: perl(Pod::MinimumVersion)
-%endif
+BuildRequires: net-snmp-utils
+BuildRequires: autoconf automake libtool
 
 %prep
 %setup -q -n %{name}-%{version}
+%patch0 -p1 -b .bz1072564-1
+%patch1 -p1 -b .bz1072564-2
+%patch2 -p1 -b .backward-fence_scsi_check_rename
+%patch3 -p1 -b .bz1121122-1
+%patch4 -p1 -b .bz1140921-1
+%patch5 -p1 -b .bz1111597-1
+%patch6 -p1 -b .bz1148762-1
+%patch7 -p1 -b .bz1153059-1
+%patch8 -p1 -b .bz1111599-1
+%patch9 -p1 -b .bz1162092-1
+%patch10 -p1 -b .bz1140921-2
+%patch11 -p1 -b .bz1140921-3
 
 %build
+./autogen.sh
 %{configure} --with-agents='%{supportedagents} %{testagents}'
 CFLAGS="$(echo '%{optflags}')" make %{_smp_mflags}
 
@@ -315,6 +335,20 @@ The fence-agents-ilo-mp package contains a fence agent for HP iLO MP devices tha
 %{_sbindir}/fence_ilo_mp
 %{_mandir}/man8/fence_ilo_mp.8*
 
+%package ilo-ssh
+License: GPLv2+ and LGPLv2+
+Group: System Environment/Base
+Summary: Fence agent for HP iLO devices via SSH
+Requires: fence-agents-common >= %{version}-%{release}
+Requires: telnet openssh-clients
+Obsoletes: fence-agents
+%description ilo-ssh
+The fence-agents-ilo-ssh package contains a fence agent for HP iLO devices that are accessed via SSH.
+%files ilo-ssh
+%defattr(-,root,root,-)
+%{_sbindir}/fence_ilo_ssh
+%{_mandir}/man8/fence_ilo_ssh.8*
+
 %package intelmodular
 License: GPLv2+ and LGPLv2+
 Group: System Environment/Base
@@ -475,14 +509,14 @@ The fence-agents-sanbox2 package contains a fence agent for QLogic SANBox2 switc
 License: GPLv2+ and LGPLv2+
 Group: System Environment/Base
 Summary: Fence agent for SCSI persisent reservations
-Requires: perl sg3_utils
+Requires: sg3_utils fence-agents-common >= %{version}-%{release}
 Obsoletes: fence-agents
 %description scsi
 The fence-agents-scsi package contains fence agent for SCSI persisent reservations
 %files scsi
 %defattr(-,root,root,-)
 %{_sbindir}/fence_scsi
-%{_sbindir}/fence_scsi_check
+%{_datadir}/cluster/fence_scsi_check.pl
 %{_mandir}/man8/fence_scsi.8*
 
 %package virsh
@@ -527,7 +561,61 @@ The fence-agents-wti package contains a fence agent for WTI network power switch
 %{_sbindir}/fence_wti
 %{_mandir}/man8/fence_wti.8*
 
+%ifarch s390x
+%package zvm
+License: GPLv2+ and LGPLv2+
+Group: System Environment/Base
+Summary: Fence agent for z/VM hypervisors
+Requires: fence-agents-common >= %{version}-%{release}
+Requires: telnet openssh-clients
+Obsoletes: fence-agents
+%description zvm
+The fence-agents-zvm package contains a fence agent for z/VM hypervisors
+%files zvm
+%defattr(-,root,root,-)
+%{_sbindir}/fence_zvm
+%{_mandir}/man8/fence_zvm.8*
+%{_sbindir}/fence_zvmip
+%{_mandir}/man8/fence_zvmip.8*
+%endif
+
 %changelog
+* Wed Nov 12 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-8
+- fence_zvm: Add 'monitor' support for fence_zvmip
+  Resolves: rhbz#1140921
+
+* Mon Nov 10 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-7
+- HTTPS connection do not validate certificate (introduced with rebase)
+  Resolves: rhbz#1162092
+
+* Thu Oct 16 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-6
+- fence_cisco_ucs and fence_vmware_soap should logout even in case of failure
+  Resolves: rhbz#1111599
+- fence_vmware_soap: Fix issue with import of fail_usage
+  Resolves: rhbz#1153059
+
+* Thu Oct 02 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-5
+- fence_wti: Fix problem with EOL introduced by rebase
+  Resolves: rhbz#1148762
+- fence_rsb: Fix issue with new firmware 
+  Resolves: rhbz#1111597
+
+* Sat Sep 20 2014 Fabio M. Di Nitto <fdinitto@redhat.com> - 4.0.11-4
+- add initial support for IBM z/VM
+  Resolves: rhbz#1140921
+
+* Mon Sep 15 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-3
+- temporary removes fence-agents-amt because amtterm is missing
+
+* Wed Sep 03 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-2
+- add a fence agents for AMT and iLO-ssh
+  Resolves: rhbz#1121122 rhbz#1107439
+
+* Wed Sep 03 2014 Marek Grac <mgrac@redhat.com> - 4.0.11-1
+- rebase of fence agents
+  Resolves: rhbz#1120682
+- INFO: fence_scsi_check.pl is now a python script
+
 * Wed Mar 19 2014 Marek Grac <mgrac@redhat.com> - 4.0.2-21
 - fencing: Add --ssl-secure and --ssl-insecure for fence_vmware_soap
   Resolves: rhbz#1072564
