@@ -1,125 +1,81 @@
-%bcond_without clufter
-%if %{with clufter}
-%{!?clufter_name:    %global clufter_name     clufter}
-%{!?clufter_pkg_name:%global clufter_pkg_name python-clufter}
-%{!?clufter_version: %global clufter_version  0.3.0}
-%{!?clufter_source:  %global clufter_source   %{clufter_name}-%{clufter_version}}
-%{!?clufter_script:  %global clufter_script   %{_libexecdir}/%{clufter_name}}
-%{!?clufter_bashcomp:%global clufter_bashcomp %{_sysconfdir}/bash_completion.d/%(basename "%{clufter_script}")}
-%{!?clufter_check:   %global clufter_check    1}
-
-%{!?clufter_ccs_flatten:     %global clufter_ccs_flatten     %{_libexecdir}/%{clufter_source}/ccs_flatten}
-%{!?clufter_editor:          %global clufter_editor          %{_bindir}/nano}
-%{!?clufter_ra_metadata_dir: %global clufter_ra_metadata_dir %{_datadir}/cluster}
-%{!?clufter_ra_metadata_ext: %global clufter_ra_metadata_ext metadata}
-%endif
-
 Name: pcs		
-Version: 0.9.137
-Release: 13%{?dist}
+Version: 0.9.143
+Release: 15%{?dist}
 License: GPLv2
 URL: http://github.com/feist/pcs
 Group: System Environment/Base
 #BuildArch: x86_64
 BuildRequires: python2-devel
 Summary: Pacemaker Configuration System	
-Source0: http://people.redhat.com/cfeist/pcs/pcs-withgems-%{version}.tar.gz
+Source0: https://tojeline.fedorapeople.org/pkgs/pcs/pcs-withgems-%{version}.tar.gz
 Source1: HAM-logo.png
-Patch0: bz1115537-Improve-error-messages-for-scoped-cib-operations.patch
-Patch1: bz1156311-Fix-waiting-for-resource-operations.patch
-Patch2: bz1170150-Fix-displaying-globally-unique-clones-in-GUI.patch
-Patch3: bz1054491-Fix-acl-add-duplicate-names-and-remove-roles-in-GUI.patch
-Patch4: bz1179023-Added-support-for-resource-discovery-on-location-con.patch
-Patch5: bz1054491-Delete-a-user-group-when-deleting-its-last-role-in-GUI.patch
-Patch6: bz1179023-Added-support-for-resource-discovery-on-location-con-2.patch
-Patch7: bz1054491-Add-acl-enable-and-disable-commands-3.patch
-Patch8: bz1180390-Stop-deleted-resource-before-removing-its-constraint.patch
-Patch9: bz1180506-stop-cluster-nodes-in-parallel.patch
-Patch10: bz1180506-Warn-if-nodes-stop-will-cause-a-loss-of-the-quorum.patch
-Patch11: bz1180506-3-Keep-cluster-quorate-during-destruction-as-long-as-possible.patch
-
-# NOTE: Source20 and Patch200+ belong to python-clufter
+Patch0: bz1122818-01-fix-resource-relocation-of-globally-unique-clones.patch
+Patch1: bz1158577-01-improve-logging-in-pcsd.patch
+Patch2: bz1189857-01-fix-Add-Resource-form-in-web-UI.patch
+Patch3: bz1235022-01-add-nagios-support-to-pcs-resource-list-and-web-UI.patch
+Patch4: bz1122818-02-fix-resource-relocate-for-remote-nodes.patch
+Patch5: bz1253491-01-fix-pcs-pcsd-path-detection.patch
+Patch6: bz1253294-01-fixed-command-injection-vulnerability.patch
+Patch7: bz1258619-01-fix-ruby-traceback-on-pcsd-startup.patch
+Patch8: bz1158577-02-fix-certificates-syncing.patch
+Patch9: bz1189857-02-fix-tree-view-of-resources-in-web-UI.patch
+Patch10: bz1158566-01-fix-dashboard-in-web-UI.patch
+Patch11: bz1189857-03-web-UI-prevents-running-update-multiple-times-at-onc.patch
+Patch12: bz1189857-04-fix-constraints-removing-in-web-UI.patch
+Patch13: bz1158571-01-web-UI-mark-unsaved-permissions-forms.patch
+Patch14: bz1189857-05-remove-removing-constriants-from-client-side-javascr.patch
+Patch15: bz1235022-02-fix-crash-when-missing-nagios-metadata.patch
+Patch16: bz1158571-02-check-and-refresh-user-auth-info-upon-each-request.patch
+Patch17: bz1257369-01-always-print-output-of-crm_resource-cleanup.patch
+Patch18: bz1158566-02-fix-loading-cluster-status-for-web-UI.patch
+Patch19: bz1158569-01-fixed-a-typo-in-an-error-message.patch
+Patch20: bz1158571-03-fix-checking-user-s-group-membership.patch
+Patch21: bz1188361-01-Make-port-parameter-of-fence-agents-optional.patch
+Patch22: bz1158569-02-fix-authentication-in-web-UI.patch
+Patch23: bz1158566-03-web-UI-multiple-fixes-in-the-dashboard.patch
+Patch24: bz1198640-01-web-UI-allows-spaces-in-optional-arguments-when-crea.patch
+Patch25: bz1189857-06-web-UI-fixes-in-nodes-resources-fence-devices.patch
+Patch26: bz1245264-01-Added-more-detailed-warnings-for-pcs-stonith-confirm.patch
+Patch27: bz1189857-07-web-UI-fixes.patch
+Patch28: bz1265425-01-Fix-for-crm_node-l-output-change.patch
+Patch29: bz1268801-Fixed-issue-with-resource-manage-not-removing-meta-a.patch
+Patch30: bz1268801-Fixes-for-managing-special-cases-of-unmanaged-resour.patch
+Patch31: bz1268801-Fixes-for-managing-special-cases-of-unmanaged-resour-2.patch
+Patch32: bz1272412-01-fix-setting-cluster-properties-in-web-UI.patch
 
 BuildRequires: ruby >= 2.0.0 ruby-devel rubygems pam-devel git
 BuildRequires: systemd-units rubygem-bundler
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires: pacemaker-cli corosync ruby >= 2.0.0 pacemaker
-%if %{with clufter}
-Requires: %{clufter_pkg_name}
-%endif
+Requires: pacemaker-cli corosync ruby >= 2.0.0 pacemaker python-clufter
+Requires: psmisc initscripts openssl
+
+Provides: bundled(rubygem-backports) = 3.6.4
+Provides: bundled(rubygem-eventmachine) = 1.0.7
+Provides: bundled(rubygem-monkey-lib) = 0.5.4
+Provides: bundled(rubygem-multi_json) = 1.11.1
+Provides: bundled(rubygem-open4) = 1.3.4
+Provides: bundled(rubygem-orderedhash) = 0.0.6
+Provides: bundled(rubygem-rack) = 1.6.4
+Provides: bundled(rubygem-rack-protection) = 1.5.3
+Provides: bundled(rubygem-rack-test) = 0.6.3
+Provides: bundled(rubygem-rpam-ruby19) = 1.2.1
+Provides: bundled(rubygem-sinatra) = 1.4.6
+Provides: bundled(rubygem-sinatra-contrib) = 1.4.4
+Provides: bundled(rubygem-sinatra-sugar) = 0.5.1
+Provides: bundled(rubygem-tilt) = 1.4.1
 
 %description
 pcs is a corosync and pacemaker configuration tool.  It permits users to
 easily view, modify and created pacemaker based clusters.
 
-
-# subpackage metadata begin
-%if %{with clufter}
-%package -n %{clufter_pkg_name}
-Group:    System Environment/Base
-Summary:  Tool/library for transforming/analyzing cluster configuration formats
-License:  GPLv2+
-URL:      https://github.com/jnpkrn/%{clufter_name}
-# clufter as such module ccs_flatten
-BuildRequires:  python-setuptools
-%if %{clufter_check}
-BuildRequires:  python-lxml
-%endif
-Requires:       python-lxml
-# ccs_flatten
-BuildRequires:  libxml2-devel
-Requires:       libxml2
-# "extras"
-Requires:       %{clufter_editor}
-Source20:       https://people.redhat.com/jpokorny/pkgs/%{clufter_name}/%{clufter_source}.tar.gz
-
-%description -n %{clufter_pkg_name}
-While primarily aimed at (CMAN,rgmanager)->(Corosync/CMAN,Pacemaker) cluster
-stacks configuration conversion (as per RHEL trend), the command-filter-format
-framework (capable of XSLT) offers also other uses through its plugin library.
-# subpackage metadata end
-%endif
-
-
 %prep
-%if %{with clufter}
-%autosetup -a20 -p1 -S git
-
-# for some esoteric reason, the line above has to be empty
-ln -s "%{clufter_source}" "%{clufter_name}"
-%else
 %autosetup -p1 -S git
 
-# ditto as previous comment
-%endif
 cp -f %SOURCE1 pcsd/public/images
 
-%if %{with clufter}
-pushd "%{clufter_name}" >/dev/null
-%{__python} setup.py saveopts -f setup.cfg pkg_prepare              \
-                     --ccs-flatten="%{clufter_ccs_flatten}"         \
-                     --editor="%{clufter_editor}"                   \
-                     --ra-metadata-dir="%{clufter_ra_metadata_dir}" \
-                     --ra-metadata-ext="%{clufter_ra_metadata_ext}"
-popd >/dev/null
-%endif
-
 %build
-%if %{with clufter}
-pushd "%{clufter_name}" >/dev/null
-%{__python} setup.py build
-%if "x%{clufter_script}" == "x"
-%else
-%if "x%{clufter_bashcomp}" == "x"
-%else
-./run-dev --completion-bash \
-  | sed 's|run[-_]dev|%(basename %{clufter_bashcomp})|g' > .bashcomp
-%endif
-%endif
-popd >/dev/null
-%endif
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -131,62 +87,8 @@ chmod 755 $RPM_BUILD_ROOT/%{python_sitelib}/pcs/pcs.py
 # Temporary fix for ruby-2.0.0 and rpam
 #cp $RPM_BUILD_ROOT/usr/lib/pcsd/gemhome/gems/rpam-ruby19-1.2.1/ext/Rpam/rpam_ext.so $RPM_BUILD_ROOT/usr/lib/pcsd/gemhome/gems/rpam-ruby19-1.2.1/lib
 
-%if %{with clufter}
-pushd "%{clufter_name}" >/dev/null
-# '--root' implies setuptools involves distutils to do old-style install
-%{__python} setup.py install --skip-build --root "%{buildroot}"
-%if "x%{clufter_script}" == "x"
-%else
-# %{_bindir}/%{clufter_name} should have been created
-# by install_scripts of setuptools; this hiding from PATH is for TP only
-%{__mkdir_p} "%{buildroot}$(dirname "%{clufter_script}")"
-%{__mv} -- "%{buildroot}%{_bindir}/%{clufter_name}" "%{buildroot}%{clufter_script}"
-%if "x%{clufter_bashcomp}" == "x"
-%else
-%{__mkdir_p} "$(dirname "%{clufter_bashcomp}")"
-%{__install} -- .bashcomp "%{buildroot}%{clufter_bashcomp}"
-%endif
-%endif
-%{__mkdir_p} "%{buildroot}%{_defaultdocdir}/%{clufter_source}"
-%{__install} -m 644 -- gpl-2.0.txt doc/*.txt "%{buildroot}%{_defaultdocdir}/%{clufter_source}"
-popd >/dev/null
-%endif
-
-%check || :
-%if %{with clufter}
-%if %{clufter_check}
-# just a basic sanity check
-pushd "%{clufter_name}" >/dev/null
-# we need to massage RA metadata files and PATH so the local run works
-# XXX we could also inject buildroot's site_packages dir to PYTHONPATH
-declare ret=0 ccs_flatten_dir="$(dirname "%{buildroot}%{clufter_ccs_flatten}")"
-
-ln -s "%{buildroot}%{clufter_ra_metadata_dir}"/*."%{clufter_ra_metadata_ext}" \
-      "${ccs_flatten_dir}"
-PATH="${PATH:+${PATH}:}$(dirname "%{buildroot}%{clufter_ccs_flatten}")" \
-./run-check
-ret=$?
-%{__rm} -f -- "${ccs_flatten_dir}"/*."%{clufter_ra_metadata_ext}"
-popd >/dev/null
-[ ${ret} = 0 ] || exit "${ret}"
-%endif
-%endif
-
 %post
 %systemd_post pcsd.service
-
-%if %{with clufter}
-%post -n %{clufter_pkg_name}
-%if "x%{clufter_bashcomp}" == "x"
-%else
-%if "x%{clufter_script}" == "x"
-%{__python} -m %{clufter_name}.__main__ --completion-bash 2>/dev/null \
-  | sed 's|%(basename "%{__python}") [-_]m ||g' > "%{clufter_bashcomp}" || :
-%else
-%{clufter_script} --completion-bash > "%{clufter_bashcomp}" 2>/dev/null || :
-%endif
-%endif
-%endif
 
 %preun
 %systemd_preun pcsd.service
@@ -201,7 +103,6 @@ popd >/dev/null
 /usr/sbin/pcs
 /usr/lib/pcsd/*
 /usr/lib/pcsd/.bundle/config
-/usr/lib/pcsd/.gitignore
 /usr/lib/systemd/system/pcsd.service
 /var/lib/pcsd
 /etc/pam.d/pcsd
@@ -210,30 +111,165 @@ popd >/dev/null
 %dir /var/log/pcsd
 /etc/sysconfig/pcsd
 %{_mandir}/man8/pcs.*
+%exclude /usr/lib/pcsd/*.debian
 
 %doc COPYING README
 
-%if %{with clufter}
-%files -n %{clufter_pkg_name}
-%defattr(-,root,root,-)
-%{python2_sitelib}/%{clufter_name}
-%{python2_sitelib}/%{clufter_name}-%{clufter_version}-*.egg-info
-%{clufter_ccs_flatten}
-%{clufter_ra_metadata_dir}
-
-%if "x%{clufter_script}" == "x"
-%else
-%if "x%{clufter_bashcomp}" == "x"
-%else
-%verify(not size md5 mtime) %{clufter_bashcomp}
-%endif
-%{clufter_script}
-%endif
-%doc %{_defaultdocdir}/%{clufter_source}/*
-%endif
-
-
 %changelog
+* Wed Oct 21 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-15
+- Fixed setting cluster properties in web UI
+- Resolves: rhbz#1272412
+
+* Wed Oct 07 2015 Chris Feist <cfeist@redhat.com> - 0.9.143-14
+- Fixed remaining issues when managing resources/groups/etc. that were
+  previously unmanaged
+- Resolves: rhbz#1268801
+
+* Tue Oct 06 2015 Chris Feist <cfeist@redhat.com> - 0.9.143-12
+- Fixed issue managing resources that were clones and had the unmanaged
+  meta attribute set under the clone/master
+- Resolves: rhbz#1268801
+
+* Wed Sep 23 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-11
+- Fix for crm_node -l output change
+- Resolves: rhbz#1265425
+
+* Tue Sep 22 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-10
+- Web UI fixes
+- Added more detailed warnings for 'pcs stonith confirm'
+- Resolves: rhbz#1189857 rhbz#1245264
+
+* Wed Sep 16 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-9
+- Multiple fixes in web UI (dashboard, nodes, resources, fence devices)
+- Fixed an authentication issue in web UI
+- Port parameter of fence agents is now considered optional
+- Resolves: rhbz#1158566 rhbz#1188361 rhbz#1189857
+
+* Tue Sep 08 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-8
+- Fixes in loading cluster status for web UI
+- Fixed checking user/group membership
+- Fixed a typo in an error message
+- Resolves: #rhbz1158566 #rhbz1158569 #rhbz1158571
+
+* Mon Sep 07 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-7
+- Multiple fixes in web UI
+- Fixed crash on missing nagios agents metadata
+- Check user/group membership on each request
+- Print output of crm_resource in pcs resource cleanup
+- Resolves: #rhbz1158571 #rhbz1189857 #rhbz1235022 #rhbz1257369
+
+* Tue Sep 01 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-6
+- Added missing dependency on openssl
+- Resolves: #rhbz1158577
+
+* Tue Sep 01 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-5
+- Fixed pcsd certificates synchronization
+- Multiple fixes in web UI
+- Resolves: #rhbz1158566 #rhbz1158577 #rhbz1189857
+
+* Mon Aug 31 2015 Chris Feist <cfeist@redhat.com> - 0.9.143-4
+- Fixed issue causing traceback on pcsd stop
+- Resolves: #rhbz#1258619
+
+* Wed Aug 26 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-3
+- Fixed relocation of remote nodes to their optimal node
+- Fixed pcs/pcsd path detection
+- Fixed command injection vulnerability
+- Resolves: #rhbz1122818 #rhbz1253294 #rhbz1253491
+
+* Fri Aug 14 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-2
+- Fixed relocation of unique clone resources to their optimal node
+- Improved logging of node to node communication
+- Fixed 'Add resource' form in web UI
+- Fixed support for nagios agents
+- Resolves: rhbz#1122818 rhbz#1158577 rhbz#1189857 rhbz#1235022
+
+* Mon Aug 10 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.143-1
+- Added support for setting permissions for users and groups to clusters managed by web UI
+- Resources are now displayed in a tree (clone, master/slave, group, primitive) in web UI
+- Renamed 'pcs resource relocate clean' command to 'pcs resource relocate clear'
+- Improved logging of config files synchronization
+- Various fixes in Resources tab in web UI
+- Added missing dependecy on initscripts to the spec file
+- Fixed traceback when running 'pcs resource enable clvmd --wait'
+- Resolves: rhbz#1122818 rhbz#1158571 rhbz#1158577 rhbz#1182119 rhbz#1189857 rhbz#1198640 rhbz#1219574 rhbz#1243579 rhbz#1247818 rhbz#1250720
+
+* Fri Jul 10 2015 Chris Feist <cfeist@redhat.com> - 0.9.142-2
+- Cleaned up tarball
+
+* Thu Jul 09 2015 Chris Feist <cfeist@redhat.com> - 0.9.142-1
+- Rebase to latest upstream sources
+- Added ability to set hostname when using IP address to create a cluster
+- Added ability to clear out tokens with pcs pcsd clear-auth
+- Added ability to use nagios agents
+- Fixed issue with orphaned resources causing GUI to fail to work properly
+- More dashboard fixes
+- Synchronize files between pcsd instances in a cluster to allow for HA pcsd
+- ACL role fixes for pcs/pcsd
+- Resolves: rhbz#118310 rhbz#1207805 rhbz#1235022 rhbz#1198222 rhbz#1158566 rhbz#1158577 rhbz#1166160
+
+* Tue Jun 23 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.141-1
+- Rebased to latest upstream packages
+- Added a command to relocate resources to their preferred host
+- Fixed the dashboard in web UI
+- Configure corosync to log to a file
+- Added warning when creating a duplicate resource operation
+- Added support for debugging resource agents
+- Do not automatically use --force when removing a resource using web UI
+- Fixed pcsd communication when one of the nodes is not authenticated
+- Updated ruby gems
+- Spec file fixes
+- Resolves: rhbz#1198265 rhbz#1122818 rhbz#1158566 rhbz#1163671 rhbz#1175400 rhbz#1185096 rhbz#1198274 rhbz#1213429 rhbz#1231987 rhbz#1232644 rhbz#1233574
+
+* Wed Jun 03 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.140-1
+- Rebased to latest upstream packages
+- Added a note to man page and help poiting to cluster properties description
+- Fixed parsing of the corosync.conf file
+- Fixed diferences between the 'pcs cluster status' and 'pcs status cluster' commands as one is documented to be an alias of the other
+- Do not remove constraints referencing a group when removing a resource from the group
+- Added dashboard showing status of clusters to web UI
+- Added node authentication dialog to web UI
+- Added synchronization of web UI configuration files across cluster nodes
+- Fixed node authentication when one of the nodes is unreachable
+- Fixed an error message in the 'pcs config restore' command if a node is not authenticated
+- Fixed parsing of 'pcs acl role create' command's parameters
+- Properly overwrite a tokens file if its contents is unparsable
+- The 'pcs config' command now displays resources defaults and operations defaults
+- Show a useful error message when attempting to add a duplicate fence level in web UI
+- Added the require-all parameter to ordering constraints listing
+- Fixed VirtualDomain resource removal when there are constraints for the resource
+- Added a warning when removing a cluster node may cause a loss of the quorum
+- Fixed an error when uncloning a non-cloned resource
+- Fixed an error when removing a resource from a cloned group
+- Fixed waiting for resource commands to finish
+- Fixed 'pcs cluster start' and similar commands when run under a non-root account
+- Fixed parsing of 'pcs constraint order set' command's parameters
+- Fixed an error when creating a resource with an id which already exists
+- Improved man page and help for the 'pcs resource move' and 'pcs resource ban' commands
+- Fixed an error when referencing a non-existing acl role in 'pcs acl' commands
+- Fixed an error when adding an invalid stonith level
+- Fixed constraints removal and node standby / unstandby using remote web UI
+- Fixed formatting of resource / fence agent description
+- Fence agent description now contains information about the agent
+- The 'pcs status --full' command now displays node attributes and migration summary
+- Clufter moved to a standalone package
+- Fixed pcsd communication when one of the nodes is not authenticated
+- Fixed a timeout value in the fence_xvm agent form
+- Fixed the 'pcs resource enable' command when working with clones and multi-state resources
+- Resolves: rhbz#1198265 rhbz#1121791 rhbz#1134426 rhbz#1158491 rhbz#1158537 rhbz#1158566 rhbz#1158569 rhbz#1158577 rhbz#1163682 rhbz#1165803 rhbz#1166160 rhbz#1170205 rhbz#1176687 rhbz#1182793 rhbz#1182986 rhbz#1183752 rhbz#1186692 rhbz#1187320 rhbz#1187571 rhbz#1188571 rhbz#1196412 rhbz#1197758 rhbz#1199073 rhbz#1201452 rhbz#1202457 rhbz#1204880 rhbz#1205653 rhbz#1206214 rhbz#1206219 rhbz#1206223 rhbz#1212904 rhbz#1213429 rhbz#1215198 rhbz#1218979
+
+* Tue Jun 02 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.137-16
+- Fixes cluster property name validation
+- Resolves: rhbz#1218478
+
+* Wed Apr 15 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.137-15
+- Fixes issues with cookie signing in pcsd
+- Resolves: rhbz#1211568
+
+* Mon Mar 09 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.137-14
+- Do not set two_nodes=1 in corosync.conf when auto_tie_breaker=1 is set
+- Resolves: rhbz#1197770
+
 * Tue Jan 20 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.137-13
 - Keep cluster quorate during destruction as long as possible
 - Resolves: rhbz#1180506
