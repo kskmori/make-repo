@@ -1,21 +1,63 @@
 Name: pcs		
-Version: 0.9.139
-Release: 8%{?dist}
+Version: 0.9.148
+Release: 5%{?dist}
 License: GPLv2
 URL: http://github.com/feist/pcs
 Group: System Environment/Base
 ExclusiveArch: i686 x86_64
+
+Summary: Pacemaker Configuration System
+Source0: https://tojeline.fedorapeople.org/pkgs/pcs/pcs-%{version}.tar.gz
+Patch0: change-cman-to-rhel6-in-messages.patch
+Patch1: rhel6.patch
+Patch2: bz1298163-01-web-UI-fix-updating-resource-when-there-is-no-stonit.patch
+Patch3: bz1297782-01-move-DISABLED_GUI-option-to-etc-sysconfig-pcsd.patch
+Patch4: disable-gui.patch
+Patch5: bz1298163-02-cluster-properties-rewrite.patch
+Patch6: bz1298163-03-fix-updating-cluster-properties-from-web-UI.patch
+Patch7: bz1260021-01-fix-syntax-error-in-utilization-attributes-functions.patch
+Patch8: bz1305913-01-fix-occasional-deadlock-when-running-processes.patch
+Patch9: bz1311159-01-fix-pcsd-permissions-if-pcs_settings.conf.patch
+
+Source1: https://rubygems.org/downloads/backports-3.6.4.gem
+Source2: https://rubygems.org/downloads/eventmachine-1.0.7.gem
+Source3: https://rubygems.org/downloads/json-1.8.3.gem
+Source4: https://rubygems.org/downloads/monkey-lib-0.5.4.gem
+Source5: https://rubygems.org/downloads/multi_json-1.11.1.gem
+Source6: https://rubygems.org/downloads/open4-1.3.4.gem
+Source7: https://rubygems.org/downloads/orderedhash-0.0.6.gem
+Source8: https://rubygems.org/downloads/rack-1.6.4.gem
+Source9: https://rubygems.org/downloads/rack-protection-1.5.3.gem
+Source10: https://rubygems.org/downloads/rack-test-0.6.3.gem
+Source11: https://tojeline.fedorapeople.org/rubygems/gems/rpam-ruby19-feist-1.2.1.1.gem
+Source12: https://rubygems.org/downloads/sinatra-1.4.6.gem
+Source13: https://rubygems.org/downloads/sinatra-contrib-1.4.4.gem
+Source14: https://rubygems.org/downloads/sinatra-sugar-0.5.1.gem
+Source15: https://rubygems.org/downloads/tilt-1.4.1.gem
+
 BuildRequires: python2-devel rubygems ruby-devel pam-devel
+# following for UpdateTimestamps sanitization function
+BuildRequires: diffstat
+
 Requires: ruby rubygems ccs
-Requires: python-clufter
-Summary: Pacemaker Configuration System	
-Source0: http://people.redhat.com/cfeist/pcs/pcs-withgems-%{version}.tar.gz
-Patch0: bz1184763-Warn-if-node-removal-will-cause-a-loss-of-the-quorum.patch
-Patch1: bz1168982-Fix-standby-unstandby-local-node.patch
-Patch2: bz1171312-1-Fix-tarball-creation-on-import-cman.patch
-Patch3: bz1171312-2-Fix-passing-parameters-to-python-clufter.patch
-Patch4: rhel6.patch
-Patch5: disable-gui.patch
+Requires: python-clufter >= 0.55.0
+Requires: psmisc initscripts openssl
+
+Provides: bundled(rubygem-backports) = 3.6.4
+Provides: bundled(rubygem-eventmachine) = 1.0.7
+Provides: bundled(rubygem-json) = 1.8.3
+Provides: bundled(rubygem-monkey-lib) = 0.5.4
+Provides: bundled(rubygem-multi_json) = 1.11.1
+Provides: bundled(rubygem-open4) = 1.3.4
+Provides: bundled(rubygem-orderedhash) = 0.0.6
+Provides: bundled(rubygem-rack) = 1.6.4
+Provides: bundled(rubygem-rack-protection) = 1.5.3
+Provides: bundled(rubygem-rack-test) = 0.6.3
+Provides: bundled(rubygem-rpam-ruby19) = 1.2.1
+Provides: bundled(rubygem-sinatra) = 1.4.6
+Provides: bundled(rubygem-sinatra-contrib) = 1.4.4
+Provides: bundled(rubygem-sinatra-sugar) = 0.5.1
+Provides: bundled(rubygem-tilt) = 1.4.1
 
 %description
 pcs is a corosync and pacemaker configuration tool.  It permits users to
@@ -23,12 +65,58 @@ easily view, modify and created pacemaker based clusters.
 
 %prep
 %setup -q
+
+# -- following borrowed from python-simplejon.el5 --
+# Update timestamps on the files touched by a patch, to avoid non-equal
+# .pyc/.pyo files across the multilib peers within a build, where "Level"
+# is the patch prefix option (e.g. -p1)
+UpdateTimestamps() {
+  Level=$1
+  PatchFile=$2
+  # Locate the affected files:
+  for f in $(diffstat $Level -l $PatchFile); do
+    # Set the files to have the same timestamp as that of the patch:
+    touch -r $PatchFile $f
+  done
+}
+
 %patch0 -p1
+UpdateTimestamps -p1 %{PATCH0}
 %patch1 -p1
+UpdateTimestamps -p1 %{PATCH1}
 %patch2 -p1
+UpdateTimestamps -p1 %{PATCH2}
 %patch3 -p1
-%patch4 -p1 -b .rhel6
-%patch5 -p1 -b .disable-gui
+UpdateTimestamps -p1 %{PATCH3}
+%patch4 -p1
+UpdateTimestamps -p1 %{PATCH4}
+%patch5 -p1
+UpdateTimestamps -p1 %{PATCH5}
+%patch6 -p1
+UpdateTimestamps -p1 %{PATCH6}
+%patch7 -p1
+UpdateTimestamps -p1 %{PATCH7}
+%patch8 -p1
+UpdateTimestamps -p1 %{PATCH8}
+%patch9 -p1
+UpdateTimestamps -p1 %{PATCH9}
+
+mkdir -p pcsd/vendor/cache
+cp -f %SOURCE1 pcsd/vendor/cache
+cp -f %SOURCE2 pcsd/vendor/cache
+cp -f %SOURCE3 pcsd/vendor/cache
+cp -f %SOURCE4 pcsd/vendor/cache
+cp -f %SOURCE5 pcsd/vendor/cache
+cp -f %SOURCE6 pcsd/vendor/cache
+cp -f %SOURCE7 pcsd/vendor/cache
+cp -f %SOURCE8 pcsd/vendor/cache
+cp -f %SOURCE9 pcsd/vendor/cache
+cp -f %SOURCE10 pcsd/vendor/cache
+cp -f %SOURCE11 pcsd/vendor/cache
+cp -f %SOURCE12 pcsd/vendor/cache
+cp -f %SOURCE13 pcsd/vendor/cache
+cp -f %SOURCE14 pcsd/vendor/cache
+cp -f %SOURCE15 pcsd/vendor/cache
 
 %build
 
@@ -57,7 +145,6 @@ fi
 /usr/sbin/pcs
 /usr/lib/pcsd/*
 /usr/lib/pcsd/.bundle/config
-/usr/lib/pcsd/.gitignore
 %{_initrddir}/pcsd
 /var/lib/pcsd
 /etc/pam.d/pcsd
@@ -66,10 +153,64 @@ fi
 %dir /var/log/pcsd
 /etc/sysconfig/pcsd
 %{_mandir}/man8/pcs.*
+%exclude /usr/lib/pcsd/*.debian
 
 %doc COPYING README
 
 %changelog
+* Wed Feb 24 2016 Ivan Devat <idevat@redhat.com> - 0.9.148-5
+- Fixed incorrect default permission assignment in pcsd.
+- Resolves: rhbz#1311159
+
+* Wed Feb 17 2016 Ivan Devat <idevat@redhat.com> - 0.9.148-4
+- Fixed occasional deadlock when running processes
+- Resolves: rhbz#1305913
+
+* Tue Feb 02 2016 Ivan Devat <idevat@redhat.com> - 0.9.148-3
+- Fixed updating cluster properties from older version of web UI
+- Fixed syntax error in utilization attributes functions
+- Resolves: rhbz#1298163
+- Related: rhbz#1260021
+
+* Tue Jan 19 2016 Ivan Devat <idevat@redhat.com> - 0.9.148-2
+- Moved DISABLED_GUI option to /etc/sysconfig/pcsd
+- Added backend support for new cluster properties form in web UI
+- Fixed multilib .pyc/.pyo issue
+- Resolves: rhbz#1297782 rhbz#1298163
+
+* Wed Dec 09 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.148-1
+- Rebased to latest upstream packages
+- Fixed crashes on one-node clusters
+- Resolves: rhbz#1260021 rhbz#1283627
+
+* Thu Nov 05 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.146-1
+- Rebased to latest upstream packages
+- Rubygems built with RELRO
+- Resolves: rhbz#1260021 rhbz#1242158
+
+* Thu Nov 05 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.145-2
+- Rubygems built with RELRO
+- Resolves: rhbz#1242158
+
+* Thu Oct 22 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.145-1
+- Rebased to latest upstream packages
+- Added a warning to "pcs cluster setup" when a node is already in a cluster
+- Fixes in help text and man page
+- Rubygems built with RELRO
+- Added option to put a node into maintenance mode
+- Ungrouping the last resource from a cloned group no longer produces an invalid CIB
+- Removing a resource from a group no longer removes constraints referencing that group
+- Fixed session and cookies processing
+- Fixed command injection vulnerability
+- Added support for exporting cluster configuration to a list of pcs commands using clufter
+- Added automatic removal of old config file backups
+- Fixed removing a fence device from fence levels on deleting the device
+- Resolves: rhbz#1260021 rhbz#1190732 rhbz#1203802 rhbz#1230368 rhbz#1242158 rhbz#1243744 rhbz#1245721 rhbz#1247883 rhbz#1247979 rhbz#1253288 rhbz#1253292 rhbz#1264795 rhbz#1273391 rhbz#1275254
+
+* Tue Apr 14 2015 Chris Feist <cfeist@redhat.com> - 0.9.139-9
+- Added fix for missing cookie signature
+- Resolves: rhbz#1211566
+
 * Fri Apr 03 2015 Tomas Jelinek <tojeline@redhat.com> - 0.9.139-8
 - Fixed duplicated nodes in a cluster created by import-cman
 - Resolves: rhbz#1171312
